@@ -1,78 +1,92 @@
 # Saving Streak — exercises
 
-Start with [project_starter](project_starter/readme.md): deposits earn points immediately, and catalogue rewards are redeemed instantly and finally. Points expiry, deposit tracking, demo login, and funded transfers are already implemented. The loyalty bonus is not implemented. Follow the [business rules](project_starter/saving-streak-spec.md).
+Start with [project_starter](project_starter/readme.md). Earning and redeeming points, points expiry, deposit tracking, demo login, and funded transfers already work. The **loyalty bonus** is the feature you will build.
 
-Take the **loyalty-rate bonus** through Module 2. Carry its implementation, checks and review findings into Module 3.
+Follow the [business rules](project_starter/saving-streak-spec.md). Carry your specification, tickets, implementation, and review findings from one exercise to the next.
 
-## Module 2 — Delivery loop
+## Shared context
 
-### 2.1 Shared context
+**What would a fresh agent need?**
 
-**Goal:** Give a fresh agent the context it needs.
+- Which code and tests explain deposits and rewards?
+- What belongs in repository guidance, and what belongs in the task?
 
-1. Ask the agent to explain the deposit-to-redemption flow, citing relevant code and tests.
-2. Add missing repository guidance and domain definitions. Separate project rules from task-specific instructions.
-3. Start a fresh session. Ask where the loyalty bonus would fit and check its answer.
+**Outcome:** An AGENTS.md with project guidance, verified in a fresh agent session.
 
-**Done when:** You can distinguish the system prompt, repository instructions and task context, and show which information helped the agent.
+## Intentionality and ambiguity
 
-### 2.2 Intentionality and ambiguity
+**What does “loyalty bonus” leave open?**
 
-Ask the agent to interview you and resolve the key decisions about the loyalty-rate bonus feature.
+- Which questions would you want the agent to ask?
+- Which examples would settle your answers?
 
-### 2.3 Decomposition and boundaries
+**Outcome:** A saved loyalty-bonus specification with agreed rules and acceptance examples.
 
-First, a short tangent: you receive two versions of the same project, one vibe coded and one agentically engineered. Inspect their [UML diagrams and architecture comparison](docs/uml/README.md) and explore how you would make the same change in each.
+## Decomposition and boundaries
 
-- What do we want to achieve, and what do we want to avoid, when asking an LLM to make a plan?
-- Why do we need to guide the agent from planning through building and verification?
+**What is the first slice we can prove?**
 
-Then return to your loyalty feature. Use the context you agreed on to split it into testable, verifiable end-to-end slices.
+Compare the [agentic_engineered](docs/uml/agentic_engineered-components.svg) and [vibe_coded](docs/uml/vibe_coded-components.svg) implementations. The [architecture comparison](docs/uml/README.md) also links to their domain diagrams.
 
-- How would you instruct the model to make that split?
-- What makes each slice sufficiently complete to test and verify end to end?
+- What do the agentic_engineered and vibe_coded diagrams reveal?
+- How could you verify one slice of the bonus from end to end?
 
-### 2.4 Context
+**Outcome:** Ordered tickets, each with an end-to-end outcome and acceptance checks.
 
-Your feature is split into slices, and its context is saved outside the session conversation.
+## The context window
 
-- What happens when the agent has too much context?
-- What happens when that context is compacted?
-- Do you need the full feature context to implement every slice?
+**What must survive a fresh session?**
 
-### 2.5 Execution and implementation
+- Which decisions could compaction lose?
+- How much of the bonus specification does this slice need?
 
-You are ready to implement the first slice.
+**Outcome:** A handoff for the first ticket that a fresh session can use without the chat history.
 
-- When should you start a new session?
-- How should you ask the agent to begin implementation?
-- Why start with a failing test before writing the implementation (TDD)?
+## Execution and implementation
 
-### 2.6 Validation and review
+**How would you start the first slice?**
 
-Summon a fresh verifier agent to review the implementer's work.
+- Would you continue this session or start a fresh one?
+- What should the first failing test prove?
 
-- Do you trust the implementer's own verification? Why or why not?
-- Beyond deterministic checks, what still needs judgment—for example, architecture, UX and the quality of the tests?
+**Outcome:** One working slice, with a test that failed before implementation and passes after.
 
-### 2.7 Iteration and termination
+## Validation and review
 
-Your verifier returns with feedback. Start a new implementer session to work through it, then have the changes reviewed again.
+**What would convince a fresh reviewer?**
 
-- This looks like a loop. Can it be automated?
-- How would the loop know when to continue, stop or ask for human input?
+- Which claims can tests establish?
+- What still needs judgment about the design, UI or tests?
 
-### 2.8 Framework comparison
+**Outcome:** A fresh agent’s review report, with findings supported by code, tests and the running app.
 
-An exposition of spec-driven development, loop engineering and role-based development, connected to the workflow you just followed.
+## Iteration and termination
 
-## Module 3 — Platform guardrails
+**When should the loop stop?**
 
-### Exercise 1 — The assembled feature
+- How will the next agent use the review findings?
+- What should trigger another pass or human input?
 
-All tickets for your feature are implemented and merged into one branch.
+**Outcome:** Addressed review findings and a follow-up review, with clear stop or escalation criteria.
 
-- What are the next steps?
-- Could the assembled feature need additional tests, even if every ticket passed its own checks?
-- Which deterministic checks and non-deterministic reviews are appropriate now? Where do CI and review agents fit?
-- Why is it still important for a human to review the implementation?
+## Framework comparison
+
+**What does each framework help you check?**
+
+Consider spec-driven development, loop engineering, and role-based workflows in light of the feature you just built.
+
+- Where did specifications, loops and separate roles help?
+- Which gaps would remain if you relied on only one?
+
+**Outcome:** A comparison of the three approaches and a reasoned choice for your next feature.
+
+## Platform guardrails
+
+**All tickets pass. Is the feature ready?**
+
+All tickets for the loyalty bonus are implemented and merged into one feature branch.
+
+- Which complete customer journey still needs checking?
+- What evidence would a human need before accepting it?
+
+**Outcome:** Evidence from complete user journeys and a recorded human decision to accept the feature or request changes.
