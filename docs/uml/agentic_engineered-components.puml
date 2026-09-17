@@ -1,0 +1,82 @@
+@startuml
+!pragma layout smetana
+title agentic_engineered — Component architecture\nCommit 0ba5c12 · committed source only
+top to bottom direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam componentStyle uml2
+skinparam componentBackgroundColor #EFF6FF
+skinparam componentBorderColor #345778
+skinparam ArrowColor #53677C
+skinparam packageStyle rectangle
+skinparam nodesep 50
+skinparam ranksep 65
+
+node "Browser" {
+  component "React frontend\nApp.tsx · api.ts · index.css" as ui #DBEAFE
+}
+component "Vite development server\n:5173 · /api proxy to :8080" as vite #F1F5F9
+
+node "Spring Boot backend — one application\nio.dataroots.savingstreak" as backend {
+  component "web — REST API\nCustomerController · SavingsAccountController\nRewardController · request/response DTOs\nRefusalsAsHttp" as api #DBEAFE
+
+  package "Feature modules — actual Java packages" as features #F8FAFC {
+    component "notifications\nNotificationsService\nBalance thresholds + anniversary alerts" as notifications
+    component "loyalty\nLoyaltyService\nAnniversary calculation + payment records" as loyalty
+    component "gifting\nGiftingService\nCustomer-to-customer points transfers" as gifting
+    component "rewards\nRewardsService\nFixed catalogue + voucher redemption" as rewards
+    component "deposits\nDepositsService · WithdrawalsService\nMoneyMovementsService\nMoney ledger + remaining principal" as deposits
+    component "streaks\nStreaksService · WeekAndStreakDerivation\nWeekly progress + streak multiplier" as streaks
+    component "accounts\nAccountsService\nCustomer identity + account ownership\nCurrent-account balances" as accounts
+    component "points\nPointsService\nCredit batches + spend + transfer + expiry" as points
+  }
+
+  component "Persistence\nSpring Data JPA + Hibernate\nRepositories live inside feature packages" as persistence #F1F5F9
+  component "Spring scheduling\nOldPointsExpireNightly\nLoyaltyBonusesArePaidNightly\nNotificationsAreRaisedNightly" as scheduler #F3E8FF
+  component "Development controls\nDevelopmentClockController\nDevelopmentJobsController\nScheduledJobs discovers @Scheduled methods" as dev #F3E8FF
+  component "clock\nClockConfiguration supplies java.time.Clock\nDev: ClockService + MovableClock\nClockOffsetRepository persists the offset" as clock #F3E8FF
+}
+
+database "SQLite\ndata/saving-streak.db" as db #F1F5F9
+
+ui --> api : HTTP /api · JSON\nvia Vite proxy in development
+vite ..> ui : serves frontend in development
+api --> features : routes requests to feature services
+api ..> dev : additional /api development endpoints
+
+notifications --> accounts
+notifications --> deposits
+notifications --> loyalty
+loyalty --> deposits
+loyalty --> points
+gifting --> accounts
+gifting --> points
+rewards --> accounts
+rewards --> points
+deposits --> accounts
+deposits --> points
+deposits --> streaks : derives rate
+streaks --> deposits : reads history
+
+features ..> persistence : feature\nrepositories
+persistence --> db : JDBC
+scheduler --> points : expire old points
+scheduler --> loyalty : pay anniversaries
+scheduler --> notifications : raise alerts
+dev ..> scheduler : invokes discovered jobs on demand
+dev --> clock : advances development clock
+clock ..> persistence : dev offset
+
+legend bottom left
+  Components are in-process modules, not independently deployed services.
+  Feature-to-feature arrows show service/rule dependencies; the deposits/streaks cycle is real.
+  Web routing and repository access are aggregated to avoid repeating an edge for every controller/repository.
+  Scheduled task classes reside in their respective feature packages; grouped here by runtime role.
+  Clock is injected into time-sensitive services and jobs; those repeated edges are omitted.
+  Purple = scheduling / time / development controls. Development controls require the dev profile.
+  DTO details, startup migrations/seeding and individual entity/repository classes are omitted.
+endlegend
+@enduml

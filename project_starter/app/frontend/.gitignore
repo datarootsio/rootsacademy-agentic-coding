@@ -1,0 +1,3 @@
+# Ignore both an installed dependency directory and a local dependency symlink.
+node_modules
+dist/

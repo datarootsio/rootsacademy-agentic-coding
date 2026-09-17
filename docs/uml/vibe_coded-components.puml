@@ -1,0 +1,73 @@
+@startuml
+!pragma layout smetana
+title vibe_coded — Component architecture\nCommit 552050f · committed source only
+top to bottom direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam componentStyle uml2
+skinparam componentBackgroundColor #ECFDF5
+skinparam componentBorderColor #34735D
+skinparam ArrowColor #53677C
+skinparam packageStyle rectangle
+skinparam nodesep 50
+skinparam ranksep 65
+
+node "Browser" {
+  component "Vanilla JavaScript frontend\nindex.html · app.js · animations.js · styles.css" as ui #DBEAFE
+}
+
+node "Spring Boot application — one process, :8080\nexample.savingstreak" as backend {
+  component "Static web resources\nsrc/main/resources/static\nServed by Spring Boot" as staticfiles #DBEAFE
+  component "web — REST API\nApiController · ApiExceptionHandler\nweb.dto request / response records" as api #DBEAFE
+
+  package "service — shared service package" as services #F3FAF6 {
+    component "Commands [grouped]\nBankingService · GiftService\nRewardService · ContactService\nTransfers, gifting, redemption, contacts" as commands
+    component "OverviewService\nAccount/member/reward lookups\nAssembles the complete UI overview" as overview
+    component "NotificationService\nBalance thresholds + loyalty warnings\nFeed + read state" as notifications
+    component "AccountTimelineService\nBuilds account timelines\nMovements + loyalty + points expiry" as timeline
+    component "LoyaltyService\nOpens / splits / moves savings positions\nSettles due anniversaries on access" as loyalty
+    component "Points [grouped]\nPointsWallet · PointsRules\nCredit, spend, gift + earning rules\nExpiry evaluated at read/spend time" as points
+  }
+
+  component "repo + domain\n9 shared Spring Data repositories\nJPA entities: Member, Account, Transfer,\nSavingsPosition, PointsLot, PointsGift,\nReward, Redemption, Notification\nHibernate" as persistence #F1F5F9
+  component "config\nAppConfig: Clock + Europe/Brussels ZoneId\nDemoDataSeeder · SQLite directory setup" as config #F3E8FF
+}
+
+database "SQLite\ndata/saving-streak.db" as db #F1F5F9
+
+ui --> staticfiles : GET HTML / JS / CSS
+ui --> api : HTTP /api · JSON\nsame origin
+api --> commands : transfer / gift / redeem / add contact
+api --> overview : read or refresh overview
+api --> notifications : alerts / read state
+api --> config : demo reset
+
+commands --> overview : lookups + refreshed response
+commands --> points
+commands --> loyalty
+commands --> notifications : BankingService: forfeited bonus
+overview --> points
+overview --> loyalty : settle due bonuses
+overview --> notifications : evaluate + read feed
+overview --> timeline
+timeline --> loyalty
+notifications --> loyalty
+loyalty --> points
+
+services ..> persistence : repository /\nentity access
+persistence --> db : JDBC
+config ..> persistence : seed / reset demo data
+
+legend bottom left
+  Components are in-process responsibilities, not independently deployed services.
+  [grouped] boxes combine named classes for readability; they are not separate Java packages.
+  An arrow from a group means at least one member uses the target, not every member.
+  Service collaboration arrows come from actual dependencies; repository access is aggregated.
+  Services construct web.dto records; command responses often include a refreshed OverviewResponse.
+  Loyalty and notifications run on access. Points expiry is calculated without a scheduled sweep.
+  Clock / ZoneId injection and startup wiring are omitted as edges. Purple = configuration.
+endlegend
+@enduml

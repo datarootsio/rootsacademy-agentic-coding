@@ -1,0 +1,174 @@
+@startuml
+!pragma layout smetana
+title vibe_coded — Domain class diagram\nCommit 552050f · committed source only
+top to bottom direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam classAttributeIconSize 0
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 90
+skinparam packageStyle rectangle
+skinparam classBackgroundColor #ECFDF5
+skinparam classBorderColor #34735D
+skinparam ArrowColor #53677C
+hide circle
+hide empty methods
+
+package domain #F3FAF6 {
+  class Member <<entity>> {
+    -id : Long
+    -primaryCustomer : boolean
+    -firstName : String
+    -lastName : String
+    -streakWeeks : int
+    -bestStreakWeeks : int
+    -lastDepositWeek : LocalDate
+    -savingsPeakCents : Long
+    +secureWeek(weekStart : LocalDate) : void
+    +effectiveStreakWeeks(currentWeekStart : LocalDate) : int
+    +raiseSavingsPeak(totalCents : long) : void
+  }
+  class Account <<entity>> {
+    -id : Long
+    -name : String
+    -iban : String
+    -type : AccountType
+    -balanceCents : long
+    -goalCents : Long
+    -alertBelowCents : Long
+    -alertAboveCents : Long
+    -belowBreached : Boolean
+    -aboveBreached : Boolean
+    +deposit(cents : long) : void
+    +withdraw(cents : long) : void
+  }
+  enum AccountType {
+    CURRENT
+    SAVINGS
+  }
+  class Transfer <<entity>> {
+    -id : Long
+    -fromAccountId : Long
+    -toAccountId : Long
+    -amountCents : long
+    -newSavingsCents : Long
+    -direction : TransferDirection
+    -pointsEarned : int
+    -streakMultiplierBasisPoints : int
+    -createdAt : Instant
+  }
+  enum TransferDirection {
+    DEPOSIT
+    WITHDRAWAL
+    REBALANCE
+  }
+  class SavingsPosition <<entity>> {
+    -id : Long
+    -transferId : Long
+    -accountId : Long
+    -principalOpenedCents : long
+    -principalLeftCents : long
+    -openedAt : Instant
+    -anniversariesPaid : int
+    -loyaltyPointsPaid : int
+    +takeUpTo(wanted : long) : long
+    +splitOff(cents : long, newAccountId : Long) : SavingsPosition
+    +moveTo(newAccountId : Long) : void
+    +recordAnniversary(points : int) : void
+  }
+  class PointsLot <<entity>> {
+    -id : Long
+    -memberId : Long
+    -pointsEarned : int
+    -pointsRemaining : int
+    -earnedAt : Instant
+    -expiresAt : Instant
+    -transferId : Long
+    -source : PointsSource
+    -giftId : Long
+    +spendUpTo(wanted : int) : int
+    +hasExpiredAt(moment : Instant) : boolean
+    +giveTo(otherMemberId : Long, wanted : int, giftId : Long) : PointsLot
+  }
+  enum PointsSource {
+    DEPOSIT
+    LOYALTY_BONUS
+    GIFT_RECEIVED
+  }
+  class PointsGift <<entity>> {
+    -id : Long
+    -fromMemberId : Long
+    -toMemberId : Long
+    -points : int
+    -message : String
+    -createdAt : Instant
+  }
+  class Reward <<entity>> {
+    -id : Long
+    -title : String
+    -partner : String
+    -category : RewardCategory
+    -pointsCost : int
+    -valueCents : long
+  }
+  class Redemption <<entity>> {
+    -id : Long
+    -rewardId : Long
+    -rewardTitle : String
+    -pointsSpent : int
+    -voucherCode : String
+    -createdAt : Instant
+  }
+  class Notification <<entity>> {
+    -id : Long
+    -memberId : Long
+    -kind : NotificationKind
+    -title : String
+    -body : String
+    -points : int
+    -accountId : Long
+    -dedupeKey : String
+    -createdAt : Instant
+    -readAt : Instant
+    +markRead(moment : Instant) : void
+    +isUnread() : boolean
+  }
+
+  Account --> AccountType : type
+  Transfer --> TransferDirection : direction
+  PointsLot --> PointsSource : source
+  Account "1" -- "0..*" Transfer : fromAccountId
+  Account "1" -- "0..*" Transfer : toAccountId
+  Account "1" -- "0..*" SavingsPosition : accountId
+  Transfer "1" -- "0..*" SavingsPosition : transferId
+  Transfer "0..1" -- "0..*" PointsLot : transferId
+  Member "1" -- "0..*" PointsLot : memberId
+  Member "1" -- "0..*" PointsGift : fromMemberId
+  Member "1" -- "0..*" PointsGift : toMemberId
+  PointsGift "0..1" -- "0..*" PointsLot : giftId
+  Member "1" -- "0..*" Notification : memberId
+  Account "0..1" -- "0..*" Notification : accountId
+  Reward "1" -- "0..*" Redemption : rewardId
+}
+
+note top of Account
+  Account has no memberId / Member mapping.
+  Accounts belong to the single demo context.
+  Redemption likewise has no member reference.
+end note
+
+legend bottom left
+  Scope: business entities, selected fields and operations, selected enums.
+  Lines: logical associations by the named scalar ID, not JPA object mappings.
+  Multiplicities describe normal application data, not SQL foreign-key constraints.
+  - private; + public. Constructors and accessors omitted.
+  Controllers, services, repositories, DTOs and configuration omitted.
+  SavingsPosition can split/move while retaining its original transfer and clock.
+  LoyaltyService settles anniversaries on access; PointsWallet evaluates expiry at read/spend time.
+  Gifted PointsLot records preserve the original expiresAt.
+endlegend
+@enduml

@@ -1,0 +1,185 @@
+@startuml
+!pragma layout smetana
+title agentic_engineered — Domain class diagram\nCommit 0ba5c12 · committed source only
+top to bottom direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam classAttributeIconSize 0
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 90
+skinparam packageStyle rectangle
+skinparam classBackgroundColor #EFF6FF
+skinparam classBorderColor #345778
+skinparam ArrowColor #53677C
+hide circle
+hide empty methods
+
+package accounts #F4F8FC {
+  class Customer <<entity>> {
+    -id : Long
+    -name : String
+    -contactDetails : String
+  }
+  class CurrentAccount <<entity>> {
+    -id : Long
+    -iban : String
+    -balance : BigDecimal
+    ~withdraw(amount : BigDecimal) : boolean
+    ~deposit(amount : BigDecimal) : void
+  }
+  class SavingsAccount <<entity>> {
+    -id : Long
+  }
+  Customer "1" -- "0..*" CurrentAccount : customer / JPA
+  Customer "1" -- "0..*" SavingsAccount : customer / JPA
+}
+
+package deposits #F4F8FC {
+  class Deposit <<entity>> {
+    -id : Long
+    -customerId : Long
+    -savingsAccountId : long
+    -sourceCurrentAccountId : long
+    -amount : BigDecimal
+    -remainingAmount : BigDecimal
+    -multiplierApplied : BigDecimal
+    -depositedAt : Instant
+    ~reduceBy(amount : BigDecimal) : void
+    ~paidAt(multiplier : BigDecimal) : void
+  }
+  class Withdrawal <<entity>> {
+    -id : Long
+    -savingsAccountId : long
+    -destinationCurrentAccountId : long
+    -amount : BigDecimal
+    -withdrawnAt : Instant
+  }
+  class WithdrawalAllocation <<entity>> {
+    -id : Long
+    -withdrawalId : long
+    -depositId : long
+    -amount : BigDecimal
+  }
+  Withdrawal "1" -- "0..*" WithdrawalAllocation : withdrawalId
+  Deposit "1" -- "0..*" WithdrawalAllocation : depositId
+}
+
+package points #F4F8FC {
+  class PointsCredit <<entity>> {
+    -id : Long
+    -customerId : Long
+    -points : long
+    -remainingPoints : long
+    -earnedAt : Instant
+    -expiredAt : Instant
+    -reason : PointsReason
+    -sourceReferenceId : long
+    ~take(wanted : long) : long
+    ~expire(anniversary : Instant) : long
+  }
+  enum PointsReason {
+    BASE_ACCRUAL
+    STREAK_BONUS
+    LOYALTY_BONUS
+    GIFT_RECEIVED
+  }
+  PointsCredit --> PointsReason : reason
+}
+
+package loyalty #F4F8FC {
+  class LoyaltyBonusPaid <<entity>> {
+    -id : Long
+    -depositId : long
+    -customerId : long
+    -anniversaryOrdinal : int
+    -anniversaryAt : Instant
+    -wholeEurosItWasWorkedOutFrom : long
+    -points : long
+  }
+}
+
+package gifting #F4F8FC {
+  class Gift <<entity>> {
+    -id : Long
+    -senderCustomerId : long
+    -recipientCustomerId : long
+    -points : long
+    -givenAt : Instant
+  }
+}
+
+package rewards #F4F8FC {
+  class Redemption <<entity>> {
+    -id : Long
+    -customerId : Long
+    -reward : Reward
+    -pointsSpent : long
+    -voucherCode : String
+    -claimedAt : Instant
+  }
+  enum Reward {
+    CHARITY_DONATION
+    SNACK_VOUCHER
+    CINEMA_TICKET
+    FAMILY_CINEMA_PACK
+    --
+    -costInPoints : long
+    -title : String
+    +costInPoints() : long
+  }
+  Redemption --> Reward : reward / stored enum
+}
+
+package notifications #F4F8FC {
+  class Notification <<entity>> {
+    -id : Long
+    -customerId : long
+    -savingsAccountId : long
+    -depositId : Long
+    -reason : NotificationReason
+    -amount : BigDecimal
+    -points : Long
+    -occursOn : LocalDate
+    -raisedAt : Instant
+    -readAt : Instant
+    ~read(readAt : Instant) : boolean
+  }
+}
+
+SavingsAccount "1" -- "0..*" Deposit : savingsAccountId
+CurrentAccount "1" -- "0..*" Deposit : sourceCurrentAccountId
+SavingsAccount "1" -- "0..*" Withdrawal : savingsAccountId
+CurrentAccount "1" -- "0..*" Withdrawal : destinationCurrentAccountId
+Customer "1" -- "0..*" PointsCredit : customerId
+Customer "1" -- "0..*" Gift : senderCustomerId
+Customer "1" -- "0..*" Gift : recipientCustomerId
+Customer "1" -- "0..*" Redemption : customerId
+Deposit "1" -- "0..*" LoyaltyBonusPaid : depositId
+SavingsAccount "1" -- "0..*" Notification : savingsAccountId
+Deposit "0..1" -- "0..*" Notification : depositId
+
+note bottom of SavingsAccount
+  No stored savings balance or streak.
+  DepositsService sums remainingAmount;
+  WeekAndStreakDerivation derives the streak.
+end note
+
+note bottom of PointsCredit
+  sourceReferenceId points to Deposit for accrual,
+  streak and loyalty; to Gift for received points.
+  PointsService records expiry during a sweep.
+end note
+
+legend bottom left
+  Scope: business entities, selected fields and operations, selected enums.
+  Lines: logical associations by the named field; only “JPA” lines are object mappings.
+  Multiplicities describe normal application data, not SQL foreign-key constraints.
+  Repeated customerId links on Deposit, LoyaltyBonusPaid and Notification are shown as fields only.
+  - private; ~ package visibility; + public. Constructors and accessors omitted.
+  Controllers, services, repositories, DTOs and development-clock persistence omitted.
+endlegend
+@enduml
